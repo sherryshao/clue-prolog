@@ -17,9 +17,12 @@ start :-
 
 % gethand: Inputs player cards.
 gethand :- 
-	write('Please enter a card or type \'done\', example: suspect(mustard)'), nl,
+	write('Please enter a card or type \'done\', example: mustard, ballroom, reolver, etc.'), nl,
 	read(Card),
-	( Card \= done -> asserta(Card), nl, gethand
+	( Card \= done -> 
+		( possible(Card) -> retract(possible(Card)), nl, gethand
+		; write('That was not a valid card.'), nl, gethand
+		)
 	; gameplay(1)
 	).
 
@@ -45,11 +48,11 @@ gameplay(Num) :-
 				; AccusationResult = n -> lose
 				)
 			; Input = s ->
-				write('Please enter a card if you were shown one, otherwise, enter \'none\', example: suspect(mustard)'), nl,
+				write('Please enter a card if you were shown one, otherwise, enter \'none\', example: mustard, ballroom, reolver, etc.'), nl,
 				read(SuggestionResult),
 				( SuggestionResult \= none ->
-					nextNum(Num, NewNum), gameplay(NewNum)
-				; asserta(SuggestionResult), nextNum(Num, NewNum), gameplay(NewNum)
+					retract(SuggestionResult), nextNum(Num, NewNum), gameplay(NewNum)
+				; nextNum(Num, NewNum), gameplay(NewNum)
 				)
 			)
 		; nextNum(Num, NewNum), gameplay(NewNum)
@@ -82,5 +85,60 @@ nextNum(Num,NewNum) :- numPlayers(Num),NewNum is 1.
 nextNum(Num,NewNum) :- NewNum is Num + 1.
 
 lose :- write('My deepest apologies. We have lost this battle.').
-win :- write('Congratulations, results show that we have conqeured this magestic game of Clue!').
+win :- write('Congratulations, results show that we have conqeured this majestic game of Clue!').
+
+% Setup objects
+
+:- dynamic suspect/1.
+:- dynamic weapon/1.
+:- dynamic room/1.
+:- dynamic possible/1.
+
+suspect(plum).
+suspect(scarlet).
+suspect(mustard).
+suspect(green).
+suspect(white).
+suspect(peacock).
+
+weapon(knife).
+weapon(candlestick).
+weapon(revolver).
+weapon(rope).
+weapon(pipe).
+weapon(wrench).
+
+room(kitchen).
+room(ballroom).
+room(conservatory).
+room(billiard).
+room(library).
+room(study).
+room(hall).
+room(lounge).
+room(dining).
+
+possible(plum).
+possible(scarlet).
+possible(mustard).
+possible(green).
+possible(white).
+possible(peacock).
+
+possible(knife).
+possible(candlestick).
+possible(revolver).
+possible(rope).
+possible(pipe).
+possible(wrench).
+
+possible(kitchen).
+possible(ballroom).
+possible(conservatory).
+possible(billiard).
+possible(library).
+possible(study).
+possible(hall).
+possible(lounge).
+possible(dining).
 
