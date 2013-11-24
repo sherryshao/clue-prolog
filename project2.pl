@@ -36,8 +36,10 @@ gameplay(Num) :-
 		write('It is our turn!'), nl,
 
 		% Suggest a suggestion / accusation here, for example
-		( possible(X),suspect(X),possible(Y),weapon(Y),possible(Z),room(Z) ->
-		  % write('Good news! I have solved the case, good sir! Please make the following accusation:'), nl,
+		( possible(X),suspect(X),possible(Y),weapon(Y),possible(Z),room(Z),aggregate_all(count, possible(_), Count),Count is 3 ->
+		  write('Good news! I have solved the case, good sir! Please make the following accusation:'), nl,
+		  write('Suspect: '), write(X), write(', Weapon: '), write(Y), write(', Room: '), write(Z), nl, nl
+		; possible(X),suspect(X),possible(Y),weapon(Y),possible(Z),room(Z) -> 
 		  write('Here is your next suggestion if you are available to give one: '), nl,
 		  write('Suspect: '), write(X), write(', Weapon: '), write(Y), write(', Room: '), write(Z), nl, nl
 		; write('Well this is awkward, I cannot find any more possible combinations... I am afraid you are on your own.'), nl, nl
