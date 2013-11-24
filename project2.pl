@@ -92,7 +92,7 @@ nextNum(Num,NewNum) :- numPlayers(Num),NewNum is 1.
 nextNum(Num,NewNum) :- NewNum is Num + 1.
 
 lose :- write('My deepest apologies. We have lost this battle.').
-win :- write('Congratulations, results show that we have conqeured this majestic game of Clue!').
+win :- write('Congratulations, results show that we have conquered this majestic game of Clue!').
 
 % Setup objects
 
