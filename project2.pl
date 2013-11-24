@@ -5,7 +5,10 @@
 % start: Sets player character, number of players and player turn.
 start :- 
 	write('Who is your character?'), nl,
-	read(Player), asserta(iam(Player)), nl,
+	read(Player), 
+	( suspect(Player) -> asserta(iam(Player)), nl
+	; nl, write('That was not a valid character.'), nl, start
+	),
 	write('How many players are there this round?'), nl,
 	read(Num), asserta(numPlayers(Num)), nl,
 	write('Which turn are you? example: 2'), nl,
@@ -21,7 +24,7 @@ gethand :-
 	read(Card),
 	( Card \= done -> 
 		( possible(Card) -> retract(possible(Card)), nl, gethand
-		; write('That was not a valid card.'), nl, gethand
+		; nl, write('That was not a valid card.'), nl, gethand
 		)
 	; gameplay(1)
 	).
@@ -33,15 +36,19 @@ gameplay(Num) :-
 		write('It is our turn!'), nl,
 
 		% Suggest a suggestion / accusation here, for example
-		write('Good news! I have solved the case, good sir! Please make the following accusation:'), nl,
-		write('Suspect: Scarlet, Room: Dining Room, Weapon: Revolver'), nl, nl,
+		( possible(X),suspect(X),possible(Y),weapon(Y),possible(Z),room(Z) ->
+		  % write('Good news! I have solved the case, good sir! Please make the following accusation:'), nl,
+		  write('Here is your next suggestion if you are available to give one: '), nl,
+		  write('Suspect: '), write(X), write(', Weapon: '), write(Y), write(', Room: '), write(Z), nl, nl
+		; write('Well this is awkward, I cannot find any more possible combinations... I am afraid you are on your own.'), nl, nl
+		),
 
 		write('Please enter \'a\' for accusation, \'s\' for suggestion or \'skip\' to skip your turn.'), nl, nl,
 		read(Input),
 		( Input \= skip ->
-			write('Please enter a suspect: '), read(Suspect), nl,
-			write('Please enter a room: '), read(Room), nl,
-			write('Please enter a weapon: '), read(Weapon), nl,
+			write('Please enter a suspect: '), nl, read(Suspect), nl,
+			write('Please enter a weapon: '), nl, read(Weapon), nl,
+			write('Please enter a room: '), nl, read(Room), nl,
 			( Input = a ->
 				write('Was the result of our deduction correct? (y/n)'), nl, nl, read(AccusationResult),
 				( AccusationResult = y -> win
@@ -51,7 +58,7 @@ gameplay(Num) :-
 				write('Please enter a card if you were shown one, otherwise, enter \'none\', example: mustard, ballroom, reolver, etc.'), nl,
 				read(SuggestionResult),
 				( SuggestionResult \= none ->
-					retract(SuggestionResult), nextNum(Num, NewNum), gameplay(NewNum)
+					retract(possible(SuggestionResult)), nextNum(Num, NewNum), gameplay(NewNum)
 				; nextNum(Num, NewNum), gameplay(NewNum)
 				)
 			)
