@@ -93,11 +93,10 @@ gameplay(Num) :-
 			; Input = s ->
 				write('Please enter a card if you were shown one, otherwise, enter \'none\', example: mustard, ballroom, reolver, etc.'), nl,
 				read(SuggestionResult), nl,
-				write('Which player showed you this card? example: 2'), nl,
-				read(PlayerId),
 
 				% If player was shown a card, remove it from the possible deck; loop
 				( SuggestionResult \= none ->
+					write('Which player showed you this card? example: 2'), nl, read(PlayerId),
 					retract(possible(SuggestionResult)), asserta(onhand(PlayerId, SuggestionResult)), nextNum(Num, NewNum), gameplay(NewNum)
 				; nextNum(Num, NewNum), gameplay(NewNum)
 				)
@@ -157,66 +156,4 @@ removeImpossiblesHelper([], _).
 removeImpossiblesHelper([H|L], Fl) :- 	removeImpossible(H),removeImpossiblesHelper(Fl, Fl);
 										not(removeImpossible(H)),removeImpossiblesHelper(L, Fl).
 
-% Setup objects
-
-:- dynamic suspect/1.
-:- dynamic weapon/1.
-:- dynamic room/1.
-:- dynamic possible/1.
-
-% Suspects 
-
-% suspect(plum).
-% suspect(scarlet).
-% suspect(mustard).
-% suspect(green).
-% suspect(white).
-% suspect(peacock).
-
-% Rooms
-
-% room(kitchen).
-% room(ballroom).
-% room(conservatory).
-% room(billiard).
-% room(library).
-% room(study).
-% room(hall).
-% room(lounge).
-% room(dining).
-
-% Weapons
-
-% weapon(knife).
-% weapon(candlestick).
-% weapon(revolver).
-% weapon(rope).
-% weapon(pipe).
-% weapon(wrench).
-
-% Current Possible Objects
-
-% possible(plum).
-% possible(scarlet).
-% possible(mustard).
-% possible(green).
-% possible(white).
-% possible(peacock).
-
-% possible(knife).
-% possible(candlestick).
-% possible(revolver).
-% possible(rope).
-% possible(pipe).
-% possible(wrench).
-
-% possible(kitchen).
-% possible(ballroom).
-% possible(conservatory).
-% possible(billiard).
-% possible(library).
-% possible(study).
-% possible(hall).
-% possible(lounge).
-% possible(dining).
 
