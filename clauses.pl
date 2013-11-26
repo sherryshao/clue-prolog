@@ -1,3 +1,8 @@
+:- dynamic suspect/1.
+:- dynamic room/1.
+:- dynamic weapon/1.
+:- dynamic possible/1.
+
 % Suspects 
 
 suspect(plum).
@@ -53,4 +58,3 @@ possible(study).
 possible(hall).
 possible(lounge).
 possible(dining).
-
