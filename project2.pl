@@ -6,28 +6,36 @@
 start :- 
 	% setup valid cards
 	write('To start off, please enter all the available cards there are in this board game!'), nl, nl,
-	getitems(suspect), getitems(rooms), getitems(weapons),
-	% set player's character
-	write('Who is your character?'), nl,
-	read(Player), 
-	% check for invalid characters
-	( suspect(Player) -> asserta(iam(Player)), nl
-	; nl, write('That was not a valid character.'), nl, start
-	),
+	getitems(suspect), nl, getitems(rooms), nl, getitems(weapons), nl,
+	
 	% set number of players
 	write('How many players are there this round?'), nl,
 	read(Num), asserta(numPlayers(Num)), nl,
+	
 	% set turn number for player
 	write('Which turn are you? example: 2'), nl,
-	read(Turn), asserta(turn(Turn)), nl,
-	write('It is my pleasure to be of your assistance! You are now set as '), write(Player), 
+	read(Turn), asserta(iam(Turn)), nl,
+
+	% set number of cards for each player
+	getnumcards(1),
+
+	write('It is my pleasure to be of your assistance! You are now set as '), 
 	write(', Player '), write(Turn),
 	write(', in a game of '), write(Num), write('.'), nl, nl,
 	gethand.
 
+% getnumcards: Inputs other players number of cards
+getnumcards(Num) :- 
+	numPlayers(NumPlayers), 
+	( Num > NumPlayers -> true
+	; write('Please enter the number of cards for Player '), write(Num), nl,
+	  read(NumCards), assertz(numCards(Num, NumCards)),
+	  NewNum is Num + 1, getnumcards(NewNum), nl
+	).
+
 % gethand: Inputs player cards.
 gethand :- 
-	write('Please enter a card or type \'done\', example: mustard, ballroom, reolver, etc.'), nl,
+	write('Please enter a card in your hand or type \'done\', example: mustard, ballroom, reolver, etc.'), nl,
 	read(Card),
 	( Card \= done -> 
 		% check for invalid cards
@@ -155,5 +163,3 @@ removeImpossibles(Fl) :- removeImpossiblesHelper(Fl, Fl).
 removeImpossiblesHelper([], _).
 removeImpossiblesHelper([H|L], Fl) :- 	removeImpossible(H),removeImpossiblesHelper(Fl, Fl);
 										not(removeImpossible(H)),removeImpossiblesHelper(L, Fl).
-
-
