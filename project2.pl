@@ -28,7 +28,7 @@ gethand :-
 	read(Card),
 	( Card \= done -> 
 		% check for invalid cards
-		( possible(Card) -> retract(possible(Card)), nl, gethand
+		( possible(Card) -> retract(possible(Card)),asserta(onhand(Card)) , nl, gethand
 		; nl, write('That was not a valid card.'), nl, gethand
 		)
 	; gameplay(1)
@@ -105,7 +105,7 @@ gameplay(Num) :-
 
 			% If other players made a suggestion
 			; Input = s ->
-				write('Was a card shown after their suggestion? (y/n)'), nl, read(SuggestionResult),
+				write('Was a card shown after their suggestion by a player other than yourself? (y/n)'), nl, read(SuggestionResult),
 
 				% Do something if a card is shown
 				( SuggestionResult = y -> assert((impossibleSet(Suspect, Room, Weapon))),resetPossibles,nextNum(Num, NewNum), gameplay(NewNum)
@@ -126,9 +126,9 @@ win :- write('Congratulations, results show that we have conquered this majestic
 resetPossibles :- findall(X,possible(X),Possibles),removeImpossibles(Possibles).
  
 removeImpossible(H) :- 
-			possible(H),suspect(H),impossibleSet(H, X, Y),not(possible(X)),not(possible(Y)),retract(possible(H)),retract(impossibleSet(H, X, Y));
-			possible(H),room(H),impossibleSet(X, H, Y),not(possible(X)),not(possible(Y)),retract(possible(H)),retract(impossibleSet(X, H, Y));
-			possible(H),weapon(H),impossibleSet(X, Y, H),not(possible(X)),not(possible(Y)),retract(possible(H)),retract(impossibleSet(X, Y, H)).
+			possible(H),suspect(H),impossibleSet(H, X, Y),onhand(X),onhand(Y),retract(possible(H)),retract(impossibleSet(H, X, Y));
+			possible(H),room(H),impossibleSet(X, H, Y),onhand(X),onhand(Y),retract(possible(H)),retract(impossibleSet(X, H, Y));
+			possible(H),weapon(H),impossibleSet(X, Y, H),onhand(X),onhand(Y),retract(possible(H)),retract(impossibleSet(X, Y, H)).
 
 removeImpossibles(Fl) :- removeImpossiblesHelper(Fl, Fl).
 
