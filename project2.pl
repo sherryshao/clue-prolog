@@ -4,6 +4,9 @@
 
 % start: Sets player character, number of players and player turn.
 start :- 
+	% setup valid cards
+	write('To start off, please enter all the available cards there are in this board game!'), nl, nl,
+	getitems(suspect), getitems(rooms), getitems(weapons),
 	% set player's character
 	write('Who is your character?'), nl,
 	read(Player), 
@@ -28,10 +31,26 @@ gethand :-
 	read(Card),
 	( Card \= done -> 
 		% check for invalid cards
-		( possible(Card) -> retract(possible(Card)),iam(MeId),asserta(onhand(MeId, Card)) , nl, gethand
+		( possible(Card) -> retract(possible(Card)),iam(MeId),assertz(onhand(MeId, Card)) , nl, gethand
 		; nl, write('That was not a valid card.'), nl, gethand
 		)
 	; gameplay(1)
+	).
+
+% getitems: Inputs valid suspects, rooms, and weapons
+getitems(Type) :- 
+	write('Please enter a '), write(Type), write(' or type \'done\''), nl,
+	read(Card),
+	( Card \= done -> 
+		% check for existing cards
+		( possible(Card) -> nl, write('You have already entered this card.'), nl, getitems(Type)
+		; assertz(possible(Card)),
+		  ( Type = suspect -> assertz(suspect(Card))
+		  ; Type = room -> assertz(room(Card))
+		  ; Type = weapon -> assertz(weapon(Card))
+		  ), getitems(Type)
+		)
+	; true
 	).
 
 % gameplay(Num): Starts the game at turn Num
@@ -147,57 +166,57 @@ removeImpossiblesHelper([H|L], Fl) :- 	removeImpossible(H),removeImpossiblesHelp
 
 % Suspects 
 
-suspect(plum).
-suspect(scarlet).
-suspect(mustard).
-suspect(green).
-suspect(white).
-suspect(peacock).
+% suspect(plum).
+% suspect(scarlet).
+% suspect(mustard).
+% suspect(green).
+% suspect(white).
+% suspect(peacock).
 
 % Rooms
 
-room(kitchen).
-room(ballroom).
-room(conservatory).
-room(billiard).
-room(library).
-room(study).
-room(hall).
-room(lounge).
-room(dining).
+% room(kitchen).
+% room(ballroom).
+% room(conservatory).
+% room(billiard).
+% room(library).
+% room(study).
+% room(hall).
+% room(lounge).
+% room(dining).
 
 % Weapons
 
-weapon(knife).
-weapon(candlestick).
-weapon(revolver).
-weapon(rope).
-weapon(pipe).
-weapon(wrench).
+% weapon(knife).
+% weapon(candlestick).
+% weapon(revolver).
+% weapon(rope).
+% weapon(pipe).
+% weapon(wrench).
 
 % Current Possible Objects
 
-possible(plum).
-possible(scarlet).
-possible(mustard).
-possible(green).
-possible(white).
-possible(peacock).
+% possible(plum).
+% possible(scarlet).
+% possible(mustard).
+% possible(green).
+% possible(white).
+% possible(peacock).
 
-possible(knife).
-possible(candlestick).
-possible(revolver).
-possible(rope).
-possible(pipe).
-possible(wrench).
+% possible(knife).
+% possible(candlestick).
+% possible(revolver).
+% possible(rope).
+% possible(pipe).
+% possible(wrench).
 
-possible(kitchen).
-possible(ballroom).
-possible(conservatory).
-possible(billiard).
-possible(library).
-possible(study).
-possible(hall).
-possible(lounge).
-possible(dining).
+% possible(kitchen).
+% possible(ballroom).
+% possible(conservatory).
+% possible(billiard).
+% possible(library).
+% possible(study).
+% possible(hall).
+% possible(lounge).
+% possible(dining).
 
