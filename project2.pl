@@ -19,9 +19,8 @@ start :-
 	% set number of cards for each player
 	getnumcards(1),
 
-	write('It is my pleasure to be of your assistance! You are now set as '), 
-	write(', Player '), write(Turn),
-	write(', in a game of '), write(Num), write('.'), nl, nl,
+	write('It is my pleasure to be of your assistance! You are now set as '), write('Player '), write(Turn),
+	write(' in a game of '), write(Num), write('.'), nl, nl,
 	gethand.
 
 % getnumcards: Inputs other players number of cards
@@ -64,7 +63,7 @@ getitems(Type) :-
 % gameplay(Num): Starts the game at turn Num
 gameplay(Num) :-
 	nl,nl,
-	( turn(Num) ->
+	( iam(Num) ->
 		% Player's turn
 		write('It is our turn!'), nl,
 
@@ -82,7 +81,7 @@ gameplay(Num) :-
 		; write('Well this is awkward, I cannot find any more possible combinations... I am afraid you are on your own.'), nl, nl
 		),
 
-		% Player choose to accuse, suggest or skip in their turn
+		% Player choose to accuse, suggest or skip your turn
 		write('Please enter \'a\' for accusation, \'s\' for suggestion or \'skip\' to skip your turn.'), nl, nl,
 		read(Input),
 		( Input \= skip ->
@@ -105,7 +104,17 @@ gameplay(Num) :-
 				% If player was shown a card, remove it from the possible deck; loop
 				( SuggestionResult \= none ->
 					write('Which player showed you this card? example: 2'), nl, read(PlayerId),
-					retract(possible(SuggestionResult)), asserta(onhand(PlayerId, SuggestionResult)), nextNum(Num, NewNum), gameplay(NewNum)
+					retract(possible(SuggestionResult)), asserta(onhand(PlayerId, SuggestionResult))
+				; true
+				),
+
+				% Ask if player wants to make an accusation
+				write('Would you like to make an accusation? (y/n)'), nl, read(Input2),
+				( Input2 = y -> 
+					write('Was the result of our deduction correct? (y/n)'), nl, nl, read(AccusationResult2),
+					( AccusationResult2 = y -> win
+					; AccusationResult2 = n -> lose
+					)
 				; nextNum(Num, NewNum), gameplay(NewNum)
 				)
 			)
@@ -136,8 +145,18 @@ gameplay(Num) :-
 				write('Was a card shown after their suggestion by a player other than yourself? (y/n)'), nl, read(SuggestionResult),
 
 				% Do something if a card is shown
-				( SuggestionResult = y -> assert((impossibleSet(Suspect, Room, Weapon))),resetPossibles,nextNum(Num, NewNum), gameplay(NewNum)
-				; SuggestionResult = n -> nextNum(Num, NewNum), gameplay(NewNum)
+				( SuggestionResult = y -> assert((impossibleSet(Suspect, Room, Weapon))),resetPossibles
+				; true
+				),
+
+				% Check if other players made an accusation right after their suggestion
+				write('Did player '), write(Num), write(' make an accusation right after the latter suggestion? (y/n)'), nl, read(Input2),
+				( Input2 = y ->
+					write('Was the result of their deduction correct? (y/n)'), nl, read(AccusationResult2),
+					( AccusationResult2 = y -> lose
+					; AccusationResult2 = n -> assert((impossibleSet(Suspect, Room, Weapon))),resetPossibles, nextNum(Num, NewNum), gameplay(NewNum)
+					)
+				; nextNum(Num, NewNum), gameplay(NewNum)
 				)
 			)
 		; nextNum(Num, NewNum), gameplay(NewNum)
