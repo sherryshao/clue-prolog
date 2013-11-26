@@ -28,7 +28,7 @@ gethand :-
 	read(Card),
 	( Card \= done -> 
 		% check for invalid cards
-		( possible(Card) -> retract(possible(Card)),asserta(onhand(Card)) , nl, gethand
+		( possible(Card) -> retract(possible(Card)),iam(MeId),asserta(onhand(MeId, Card)) , nl, gethand
 		; nl, write('That was not a valid card.'), nl, gethand
 		)
 	; gameplay(1)
@@ -73,11 +73,13 @@ gameplay(Num) :-
 			% Player chose to make a suggestion
 			; Input = s ->
 				write('Please enter a card if you were shown one, otherwise, enter \'none\', example: mustard, ballroom, reolver, etc.'), nl,
-				read(SuggestionResult),
+				read(SuggestionResult), nl,
+				write('Which player showed you this card? example: 2'), nl,
+				read(PlayerId),
 
 				% If player was shown a card, remove it from the possible deck; loop
 				( SuggestionResult \= none ->
-					retract(possible(SuggestionResult)), nextNum(Num, NewNum), gameplay(NewNum)
+					retract(possible(SuggestionResult)), asserta(onhand(PlayerId, SuggestionResult)), nextNum(Num, NewNum), gameplay(NewNum)
 				; nextNum(Num, NewNum), gameplay(NewNum)
 				)
 			)
