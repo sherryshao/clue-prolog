@@ -187,17 +187,33 @@ makeInference(CardShowerId, Suspect, Room, Weapon) :-
 
 % setOnhand: records down a Card that is held by Player and render it impossible to be in the envelope
 % called when we see or infer this fact
-setOnhand(PlayerId, Card) :- possible(Card) -> assert(onhand(PlayerId, Card)),retract(possible(Card))
-						; not(possible(Card)) -> assert(onhand(PlayerId, Card)).
+% if an instance of setOnhand renders a single remaining possible left in the category, the card left should be assigned onhand(0, reminingCard)
+setOnhand(PlayerId, Card) :- 
+	possible(Card) -> assert(onhand(PlayerId, Card)),retract(possible(Card)),getType(Card, Type),countPossibles(Type, Count),
+		( (Count = 1, suspect(Card)) -> possible(X),suspect(X),conclude(suspect, X)
+		; (Count = 1, room(Card)) -> possible(X),room(X),conclude(room, X)
+		; (Count = 1, weapon(Card)) -> possible(X),weapon(X),conclude(weapon, X)
+		; true
+		)
+	; not(possible(Card)) -> assert(onhand(PlayerId, Card)).
 
 % inferUnrejectedSuggestion(): when a suggestion has been made, unrejected, but the player did not proceed to make an accusation
 % if we know all the cards that they have on hand, we can infer that whatever that is not on their hand is in the envelop
+% used wilcards in place of not(onhand(_, Type)) because if we have already established that anyone has this card, we cannot conclude it
+% this also enables player 0 (the envelop) to play part in the inference; maing the program more robust and less error prone
 inferUnrejectedSuggestion(PlayerId, Suspect, Room, Weapon) :- 
 	numCards(PlayerId, NumCards),aggregate_all(count, onhand(PlayerId, _), Count),
 	( Count is NumCards ->
-		( not(onhand(PlayerId, Suspect)) -> conclude(suspect, Suspect)
-		, not(onhand(PlayerId, Room)) -> conclude(room, Room)
-		, not(onhand(PlayerId, Weapon)) -> conclude(weapon, Weapon)
+		( 
+			( not(onhand(_, Suspect)) -> conclude(suspect, Suspect)
+			; true
+			),
+			( not(onhand(_, Room)) -> conclude(room, Room)
+			; true
+			),
+			( not(onhand(_, Weapon)) -> conclude(weapon, Weapon)
+			; true
+			)
 		)
 	)
 	; true.
@@ -210,17 +226,38 @@ conclude(Type, Card) :-
 	).
 
 % removeAllExcept(): helper function for conclude()
-removeAllExcept(Card, []) :- asserta(possible(Card)).
+% also added onhand() to indicate that someone is holding this card (the envelop), this allows this card to play part in inference making
+removeAllExcept(Card, []) :- asserta(possible(Card)),assert(onhand(0, Card)).
 removeAllExcept(Card, [H|T]) :- 
 	possible(H) -> retract(possible(H)),removeAllExcept(Card,T)
 	; not(possible(H)) -> removeAllExcept(Card, T).
+
+% countPossibles(): takes a type (suspect, room, or weapon) and count the number of possibles remaining in the given type
+countPossibles(Type, Count) :- 
+	( Type = suspect -> aggregate_all(count, possibles(suspect), Count)
+	; Type = room -> aggregate_all(count, possibles(room), Count)
+	; Type = weapon -> aggregate_all(count, possibles(weapon), Count)
+	).
+
+% possibles(): helper function for countPossibles
+possibles(Type) :-
+	( Type = suspect -> possible(X),suspect(X)
+	; Type = room -> possible(X),room(X)
+	; Type = weapon -> possible(X),weapon(X)
+	).
+
+% get type of given card
+getType(Card, Type) :-
+	( suspect(Card) -> Type = suspect
+	; room(Card) -> Type = room
+	; weapon(Card) -> Type = weapon
+	).
 
 :- dynamic suspect/1.
 :- dynamic room/1.
 :- dynamic weapon/1.
 :- dynamic possible/1.
 :- dynamic onhand/2.
-
 
 
 
