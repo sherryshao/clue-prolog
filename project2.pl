@@ -6,7 +6,7 @@
 start :- 
 	% setup valid cards
 	write('To start off, please enter all the available cards there are in this board game!'), nl, nl,
-	getitems(suspect), nl, getitems(rooms), nl, getitems(weapons), nl,
+	getitems(suspect), nl, getitems(room), nl, getitems(weapon), nl,
 	
 	% set number of players
 	write('How many players are there this round?'), nl,
@@ -182,3 +182,9 @@ removeImpossibles(Fl) :- removeImpossiblesHelper(Fl, Fl).
 removeImpossiblesHelper([], _).
 removeImpossiblesHelper([H|L], Fl) :- 	removeImpossible(H),removeImpossiblesHelper(Fl, Fl);
 										not(removeImpossible(H)),removeImpossiblesHelper(L, Fl).
+
+:- dynamic suspect/1.
+:- dynamic room/1.
+:- dynamic weapon/1.
+:- dynamic possible/1.
+
