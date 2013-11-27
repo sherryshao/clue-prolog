@@ -38,7 +38,7 @@ gethand :-
 	read(Card),
 	( Card \= done -> 
 		% check for invalid cards
-		( possible(Card) -> retract(possible(Card)),iam(MeId),assertz(onhand(MeId, Card)) , nl, gethand
+		( possible(Card) -> iam(MeId),setOnhand(MeId, Card) , nl, gethand
 		; nl, write('That was not a valid card.'), nl, gethand
 		)
 	; gameplay(1)
@@ -77,7 +77,7 @@ gameplay(Num) :-
 		  write('Here is your next suggestion if you are available to give one: '), nl,
 		  write('Suspect: '), write(X), write(', Weapon: '), write(Y), write(', Room: '), write(Z), nl, nl
 
-		% Check.. if something went wrong and we've removed way too many clauses
+		% Check if something went wrong and we've removed way too many clauses
 		; write('Well this is awkward, I cannot find any more possible combinations... I am afraid you are on your own.'), nl, nl
 		),
 
@@ -103,8 +103,7 @@ gameplay(Num) :-
 
 				% If player was shown a card, remove it from the possible deck; loop
 				( SuggestionResult \= none ->
-					write('Which player showed you this card? example: 2'), nl, read(PlayerId),
-					retract(possible(SuggestionResult)), asserta(onhand(PlayerId, SuggestionResult))
+					write('Which player showed you this card? example: 2'), nl, read(PlayerId),setOnhand(PlayerId, SuggestionResult)
 				; true
 				),
 
@@ -137,15 +136,17 @@ gameplay(Num) :-
 			( Input = a ->
 				write('Was the result of their deduction correct? (y/n)'), nl, read(AccusationResult),
 				( AccusationResult = y -> lose
-				; AccusationResult = n -> assert((impossibleSet(Suspect, Room, Weapon))),resetPossibles,nextNum(Num, NewNum), gameplay(NewNum)
+				; AccusationResult = n -> nextNum(Num, NewNum), gameplay(NewNum)
 				)
 
 			% If other players made a suggestion
 			; Input = s ->
-				write('Was a card shown after their suggestion by a player other than yourself? (y/n)'), nl, read(SuggestionResult),
+				write('Was a card shown after their suggestion? (y/n)'), nl, read(SuggestionResult), nl,
 
 				% Do something if a card is shown
-				( SuggestionResult = y -> assert((impossibleSet(Suspect, Room, Weapon))),resetPossibles
+				( SuggestionResult = y ->
+					write('Which player showed them this card? example: 2'), nl, read(CardShowerId), nl, 
+					makeInference(CardShowerId, Suspect, Room, Weapon)
 				; true
 				),
 
@@ -154,7 +155,11 @@ gameplay(Num) :-
 				( Input2 = y ->
 					write('Was the result of their deduction correct? (y/n)'), nl, read(AccusationResult2),
 					( AccusationResult2 = y -> lose
-					; AccusationResult2 = n -> assert((impossibleSet(Suspect, Room, Weapon))),resetPossibles, nextNum(Num, NewNum), gameplay(NewNum)
+					; AccusationResult2 = n -> nextNum(Num, NewNum), gameplay(NewNum)
+					)
+				; Input2 = n ->
+					( SuggestionResult = n -> inferUnrejectedSuggestion(Num, Suspect, Room, Weapon),nextNum(Num, NewNum), gameplay(NewNum) 
+					; SuggestionResult = y -> nextNum(Num, NewNum), gameplay(NewNum)
 					)
 				; nextNum(Num, NewNum), gameplay(NewNum)
 				)
@@ -170,21 +175,52 @@ nextNum(Num,NewNum) :- NewNum is Num + 1.
 lose :- write('My deepest apologies. We have lost this battle.').
 win :- write('Congratulations, results show that we have conquered this majestic game of Clue!').
 
-resetPossibles :- findall(X,possible(X),Possibles),removeImpossibles(Possibles).
- 
-removeImpossible(H) :- 
-			possible(H),suspect(H),impossibleSet(H, X, Y),onhand(X),onhand(Y),retract(possible(H)),retract(impossibleSet(H, X, Y));
-			possible(H),room(H),impossibleSet(X, H, Y),onhand(X),onhand(Y),retract(possible(H)),retract(impossibleSet(X, H, Y));
-			possible(H),weapon(H),impossibleSet(X, Y, H),onhand(X),onhand(Y),retract(possible(H)),retract(impossibleSet(X, Y, H)).
+% makeInference(Num, Card(Suspect), Card(Room), Card(Weapon)) : makes inference based on what we already know
+% if a player is able to reject a set of cards when 2 of which we know are held by other players, we can make
+% conclusions about which card was shown (therefore this player has) and record this information down in the form of onhand(playerId, Card)
+makeInference(CardShowerId, Suspect, Room, Weapon) :- 
+	onhand(CardShowerId, Suspect);onhand(CardShowerId, Room);onhand(CardShowerId, Weapon)
+	;onhand(_, Suspect),onhand(_, Room),setOnhand(CardShowerId, Weapon)
+	;onhand(_, Room),onhand(_, Weapon),setOnhand(CardShowerId, Suspect)
+	;onhand(_, Suspect),onhand(_, Weapon),setOnhand(CardShowerId, Room)
+	;true.
 
-removeImpossibles(Fl) :- removeImpossiblesHelper(Fl, Fl).
+% setOnhand: records down a Card that is held by Player and render it impossible to be in the envelope
+% called when we see or infer this fact
+setOnhand(PlayerId, Card) :- possible(Card) -> assert(onhand(PlayerId, Card)),retract(possible(Card))
+						; not(possible(Card)) -> assert(onhand(PlayerId, Card)).
 
-removeImpossiblesHelper([], _).
-removeImpossiblesHelper([H|L], Fl) :- 	removeImpossible(H),removeImpossiblesHelper(Fl, Fl);
-										not(removeImpossible(H)),removeImpossiblesHelper(L, Fl).
+% inferUnrejectedSuggestion(): when a suggestion has been made, unrejected, but the player did not proceed to make an accusation
+% if we know all the cards that they have on hand, we can infer that whatever that is not on their hand is in the envelop
+inferUnrejectedSuggestion(PlayerId, Suspect, Room, Weapon) :- 
+	numCards(PlayerId, NumCards),aggregate_all(count, onhand(PlayerId, _), Count),
+	( Count is NumCards ->
+		( not(onhand(PlayerId, Suspect)) -> conclude(suspect, Suspect)
+		, not(onhand(PlayerId, Room)) -> conclude(room, Room)
+		, not(onhand(PlayerId, Weapon)) -> conclude(weapon, Weapon)
+		)
+	)
+	; true.
+
+% conclude(): make conclusion about a type by removing all remaing possible predicates of the given type other than the one indicated
+conclude(Type, Card) :- 
+	( Type = suspect -> findall(X, suspect(X), Suspects),removeAllExcept(Card, Suspects)
+	; Type = room -> findall(X, room(X), Rooms),removeAllExcept(Card, Rooms)
+	; Type = weapon -> findall(X, weapon(X), Weapons),removeAllExcept(Card, Weapons)
+	).
+
+% removeAllExcept(): helper function for conclude()
+removeAllExcept(Card, []) :- asserta(possible(Card)).
+removeAllExcept(Card, [H|T]) :- 
+	possible(H) -> retract(possible(H)),removeAllExcept(Card,T)
+	; not(possible(H)) -> removeAllExcept(Card, T).
 
 :- dynamic suspect/1.
 :- dynamic room/1.
 :- dynamic weapon/1.
 :- dynamic possible/1.
+:- dynamic onhand/2.
+
+
+
 
