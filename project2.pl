@@ -29,18 +29,19 @@ getnumcards(Num) :-
 	( Num > NumPlayers -> true
 	; write('Please enter the number of cards for Player '), write(Num), nl,
 	  read(NumCards), assertz(numCards(Num, NumCards)),
-	  NewNum is Num + 1, getnumcards(NewNum), nl
+	  NewNum is Num + 1, nl, getnumcards(NewNum)
 	).
 
 % gethand: Inputs player cards.
 gethand :- 
-	write('Please enter a card in your hand or type \'done\', example: mustard, ballroom, reolver, etc.'), nl,
+	write('Please enter a card in your hand or type \'done\', example: mustard, ballroom, revolver, etc.'), nl,
 	read(Card),
 	( Card \= done -> 
 		% check for invalid cards
-		( possible(Card) -> iam(MeId),setOnhand(MeId, Card) , nl, gethand
-		; nl, write('That was not a valid card.'), nl, gethand
-		)
+		iam(MeId),setOnhand(MeId, Card) , nl, gethand
+		%( possible(Card) -> iam(MeId),setOnhand(MeId, Card) , nl, gethand
+		%; nl, write('That was not a valid card.'), nl, gethand
+		%)
 	; gameplay(1)
 	).
 
@@ -68,12 +69,25 @@ gameplay(Num) :-
 		write('It is our turn!'), nl,
 
 		% Check if accusation is possible (a valid combination + only 3 possible objects left)
-		( possible(X),suspect(X),possible(Y),weapon(Y),possible(Z),room(Z),aggregate_all(count, possible(_), Count),Count is 3 ->
+		( onlyCombination(X,Y,Z) ->
 		  write('Good news! I have solved the case, good sir! Please make the following accusation:'), nl,
 		  write('Suspect: '), write(X), write(', Weapon: '), write(Y), write(', Room: '), write(Z), nl, nl
 
+		% Check if a 2-on-hand-1-possible suggestion is possible
+		; fakeCombination(suspect,X,Y,Z) -> 
+		  write('Here is a fake suggestion, if no one shows you a card, the suspect is in the envelope: '), nl,
+		  write('Suspect: '), write(X), write(', Weapon: '), write(Y), write(', Room: '), write(Z), nl, nl
+
+		; fakeCombination(weapon,X,Y,Z) -> 
+		  write('Here is a fake suggestion, if no one shows you a card, the weapon is in the envelope: '), nl,
+		  write('Suspect: '), write(X), write(', Weapon: '), write(Y), write(', Room: '), write(Z), nl, nl
+
+		; fakeCombination(room,X,Y,Z) -> 
+		  write('Here is a fake suggestion, if no one shows you a card, the room is in the envelope: '), nl,
+		  write('Suspect: '), write(X), write(', Weapon: '), write(Y), write(', Room: '), write(Z), nl, nl
+
 		% Check if suggestion is possible (a valid combination)
-		; possible(X),suspect(X),possible(Y),weapon(Y),possible(Z),room(Z) -> 
+		; validCombination(X,Y,Z) -> 
 		  write('Here is your next suggestion if you are available to give one: '), nl,
 		  write('Suspect: '), write(X), write(', Weapon: '), write(Y), write(', Room: '), write(Z), nl, nl
 
@@ -82,7 +96,7 @@ gameplay(Num) :-
 		),
 
 		% Player choose to accuse, suggest or skip your turn
-		write('Please enter \'a\' for accusation, \'s\' for suggestion or \'skip\' to skip your turn.'), nl, nl,
+		write('Please enter \'a\' for accusation, \'s\' for suggestion, \'f\' for fake suggestion or \'skip\' to skip your turn.'), nl, nl,
 		read(Input),
 		( Input \= skip ->
 			write('Please enter a suspect: '), nl, read(Suspect), nl,
@@ -98,13 +112,48 @@ gameplay(Num) :-
 
 			% Player chose to make a suggestion
 			; Input = s ->
-				write('Please enter a card if you were shown one, otherwise, enter \'none\', example: mustard, ballroom, reolver, etc.'), nl,
+				write('Please enter a card if you were shown one, otherwise, enter \'none\', example: mustard, ballroom, revolver, etc.'), nl,
 				read(SuggestionResult), nl,
 
-				% If player was shown a card, remove it from the possible deck; loop
+				% If player was shown a card, remove it from the possible deck
 				( SuggestionResult \= none ->
 					write('Which player showed you this card? example: 2'), nl, read(PlayerId),setOnhand(PlayerId, SuggestionResult)
 				; true
+				),
+
+				( possible(A),suspect(A),possible(B),weapon(B),possible(C),room(C),aggregate_all(count, possible(_), Count),Count is 3 ->
+					write('Good news! I have solved the case, good sir! Please make the following accusation:'), nl,
+		  			write('Suspect: '), write(A), write(', Weapon: '), write(B), write(', Room: '), write(C), nl, nl
+		  		; write('I have not resolved an absolute accusation after that suggestion; accuse at your own risk.'), nl, nl
+				),
+
+				% Ask if player wants to make an accusation
+				write('Would you like to make an accusation? (y/n)'), nl, read(Input2),
+				( Input2 = y -> 
+					write('Was the result of our deduction correct? (y/n)'), nl, nl, read(AccusationResult2),
+					( AccusationResult2 = y -> win
+					; AccusationResult2 = n -> lose
+					)
+				; nextNum(Num, NewNum), gameplay(NewNum)
+				)
+			; Input = f ->
+				write('Please enter a card if you were shown one, otherwise, enter \'none\', example: mustard, ballroom, revolver, etc.'), nl,
+				read(FakeSuggestionResult), nl,
+
+				% If player was shown a card, remove it from the possible deck, else conclude that the card we tested is in the envelope
+				( FakeSuggestionResult \= none ->
+					write('Which player showed you this card? example: 2'), nl, read(PlayerId),setOnhand(PlayerId, FakeSuggestionResult)
+				; ( onhand(Num, Weapon),onhand(Num, Room) -> conclude(suspect, Suspect)
+				  ; onhand(Num, Suspect),onhand(Num, Room) -> conclude(weapon, Weapon)
+				  ; onhand(Num, Suspect),onhand(Num, Weapon) -> conclude(room, Room)
+				  )
+				; true
+				),
+
+				( possible(A),suspect(A),possible(B),weapon(B),possible(C),room(C),aggregate_all(count, possible(_), Count),Count is 3 ->
+					write('Good news! I have solved the case, good sir! Please make the following accusation:'), nl,
+	  				write('Suspect: '), write(A), write(', Weapon: '), write(B), write(', Room: '), write(C), nl, nl
+		  		; write('I have not resolved an absolute accusation after that suggestion; accuse at your own risk.'), nl, nl
 				),
 
 				% Ask if player wants to make an accusation
@@ -253,11 +302,32 @@ getType(Card, Type) :-
 	; weapon(Card) -> Type = weapon
 	).
 
-:- dynamic suspect/1.
-:- dynamic room/1.
-:- dynamic weapon/1.
-:- dynamic possible/1.
-:- dynamic onhand/2.
+% check if we can make an accusation
+onlyCombination(Suspect, Weapon, Room) :- 
+	validCombination(Suspect, Weapon, Room),
+	aggregate_all(count, possible(_), Count),Count is 3.
 
+% check if we can make a suggestion
+validCombination(Suspect, Weapon, Room) :-
+	possible(Suspect),suspect(Suspect),
+	possible(Weapon),weapon(Weapon),
+	possible(Room),room(Room).
 
+% check if we can make a fake suggestion with two impossible cards and one possible to test the validity of the possible
+fakeCombination(Type, Suspect, Weapon, Room) :- 
+	iam(PlayerId),
+	countPossibles(Type, Count),Count is 2,
+	( Type = suspect -> 
+		possible(Suspect),suspect(Suspect),
+		onhand(PlayerId,Weapon),weapon(Weapon),
+		onhand(PlayerId,Room),room(Room)
+	; Type = weapon ->
+		not(possible(Suspect)),onhand(PlayerId,Suspect),suspect(Suspect),
+		possible(Weapon),weapon(Weapon),
+		not(possible(Room)),onhand(PlayerId,Room),room(Room)
+	; Type = room ->
+		not(possible(Suspect)),onhand(PlayerId,Suspect),suspect(Suspect),
+		not(possible(Weapon)),onhand(PlayerId,Weapon),weapon(Weapon),
+		possible(Room),room(Room)
+	).
 
