@@ -38,10 +38,9 @@ gethand :-
 	read(Card),
 	( Card \= done -> 
 		% check for invalid cards
-		iam(MeId),setOnhand(MeId, Card) , nl, gethand
-		%( possible(Card) -> iam(MeId),setOnhand(MeId, Card) , nl, gethand
-		%; nl, write('That was not a valid card.'), nl, gethand
-		%)
+		( possible(Card) -> iam(MeId),setOnhand(MeId, Card) , nl, gethand
+		; nl, write('That was not a valid card.'), nl, gethand
+		)
 	; gameplay(1)
 	).
 
@@ -331,3 +330,8 @@ fakeCombination(Type, Suspect, Weapon, Room) :-
 		possible(Room),room(Room)
 	).
 
+:- dynamic suspect/1.
+:- dynamic room/1.
+:- dynamic weapon/1.
+:- dynamic possible/1.
+:- dynamic onhand/2.

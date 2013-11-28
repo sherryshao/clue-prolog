@@ -2,6 +2,7 @@
 :- dynamic room/1.
 :- dynamic weapon/1.
 :- dynamic possible/1.
+:- dynamic onhand/2.
 
 % Suspects 
 
